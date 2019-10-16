@@ -229,9 +229,17 @@ class Report(Resource):
         if time_start is not '' and time_end is not '':
             time_str = "%Y-%m-%d"
             date_time_str = "%m-%d"
-            t_start = datetime.datetime.strptime(time_start, time_str)
-            t_end = datetime.datetime.strptime(time_end, time_str)
-            t_end += datetime.timedelta(days=1)
+            try:
+                t_start = datetime.datetime.strptime(time_start, time_str)
+                t_end = datetime.datetime.strptime(time_end, time_str)
+                t_end += datetime.timedelta(days=1)
+            except ValueError:
+                time_start = datetime.datetime.today() + datetime.timedelta(days=-7)
+                time_end = datetime.datetime.today().strftime("%Y-%m-%d")
+                time_start = time_start.strftime("%Y-%m-%d")
+                t_start = datetime.datetime.strptime(time_start, time_str)
+                t_end = datetime.datetime.strptime(time_end, time_str)
+                t_end += datetime.timedelta(days=1)
 
             t_start_tuple = t_start.timetuple()
             t_end_tuple = t_end.timetuple()
@@ -286,10 +294,22 @@ class Report(Resource):
 
                     else:
                         logger.debug('[REPORT] Empty result in {0}'.format(data_file))
-            time_range = sorted_dict(time_range)
-            pie = []
+            ret = []
             for k, v in rule_num.items():
-                pie.append({"value": v, "name": k})
+                ret.append({
+                    "name": k,
+                    "value": v
+
+                })
+            linechart = []
+            for k, v in time_range.items():
+                linechart.append(
+                    {
+                        "name": k,
+                        "value": v
+                    }
+                )
+           # time_range = sorted_dict(time_range)
             return {"code": 1001, "result": {
                 "headnumber": {
                     "Critical": critical_vul_number,
@@ -297,17 +317,16 @@ class Report(Resource):
                     "meidum": medium_vul_number,
                     "low": low_vul_number
                 },
-                'pie': rule_num,
+                'pie': ret,
                 "othernumber": {
                     "Files": total_files,
                     "Targets": len(data_lists),
                     "Vulnerabilitites": total_vul_number,
                     "Time": time_start
                 },
-                "linechart": time_range
+                "linechart": linechart
             }
                     }
-
 
 class AddJob(Resource):
     @staticmethod
