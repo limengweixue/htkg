@@ -727,18 +727,19 @@ class FileUpload(Resource):
         Scan by uploading compressed files
         :return:
         """
-        if 'file' not in request.files:
-            return {'code': 1002, 'result': "File can't empty!"}
-        file_instance = request.files['file']
+        data = request.json
+        if not data or data == "":
+            return {"code": 1003, "msg": "Only support json, please post json data."}
+        filename = request.json.get("filename")
+        content = request.json.get('content')
         desc = request.json.get("desc")
-        if file_instance.filename == '':
+        if filename == '':
             return {'code': 1002, 'result': "File name can't empty!"}
-        #代码读取
-        if file_instance and allowed_file(file_instance.filename):
-            filename = secure_filename(file_instance.filename)
-            # 读文件内容
+        if content and allowed_file(filename):
+            filename = secure_filename(filename)
             dst_directory = os.path.join(package_path, filename)
-            file_instance.save(dst_directory)
+            with open(dst_directory, "wb+") as f:
+                 f.write(base64.decodebytes(content.encode()))
             # Start scan
             a_sid = get_sid(dst_directory, True)
             data = {
@@ -747,7 +748,6 @@ class FileUpload(Resource):
                 'desc': desc
 
             }
-
             Running(a_sid).status(data)
             try:
                 cli.start(dst_directory, None, 'stream', None, a_sid=a_sid)
